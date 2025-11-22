@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  portainer-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PORTAINER_MCP_VERSION: v0.6.0
+    image: portainer-mcp-wrapper:latest
+    container_name: portainer-mcp-wrapper
+    restart: unless-stopped
+
+    ports:
+      - "${MCP_PORT:-8080}:${MCP_PORT:-8080}"
+
+    environment:
+      # Portainer connection settings
+      PORTAINER_URL: ${PORTAINER_URL:-http://portainer:9000}
+      PORTAINER_API_TOKEN: ${PORTAINER_API_TOKEN:?PORTAINER_API_TOKEN is required}
+
+      # MCP wrapper settings
+      MCP_ACCESS_TOKEN: ${MCP_ACCESS_TOKEN:?MCP_ACCESS_TOKEN is required}
+      MCP_PORT: ${MCP_PORT:-8080}
+
+      # Optional settings
+      MCP_TOOLS_FILE: ${MCP_TOOLS_FILE:-}
+      DISABLE_VERSION_CHECK: ${DISABLE_VERSION_CHECK:-false}
+      READ_ONLY_MODE: ${READ_ONLY_MODE:-false}
+
+    # volumes:
+      # Optional: Mount custom tools configuration
+      # - ./config:/config:ro
+
+    networks:
+      - default
+
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 128M
+
+networks:
+  default:
+    driver: bridge
